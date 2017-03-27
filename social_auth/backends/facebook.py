@@ -39,8 +39,8 @@ from social_auth.exceptions import AuthException, AuthCanceled, AuthFailed,\
 
 
 # Facebook configuration
-FACEBOOK_ME = 'https://graph.facebook.com/me?'
-ACCESS_TOKEN = 'https://graph.facebook.com/oauth/access_token?'
+FACEBOOK_ME = 'https://graph.facebook.com/v2.8/me?'
+ACCESS_TOKEN = 'https://graph.facebook.com/v2.8/oauth/access_token?'
 USE_APP_AUTH = setting('FACEBOOK_APP_AUTH', False)
 LOCAL_HTML = setting('FACEBOOK_LOCAL_HTML', 'facebook.html')
 APP_NAMESPACE = setting('FACEBOOK_APP_NAMESPACE', None)
@@ -48,7 +48,7 @@ REDIRECT_HTML = """
 <script type="text/javascript">
     var domain = 'https://apps.facebook.com/',
         redirectURI = domain + '{{ FACEBOOK_APP_NAMESPACE }}' + '/';
-    window.top.location = 'https://www.facebook.com/dialog/oauth/' +
+    window.top.location = 'https://www.facebook.com/v2.8/dialog/oauth/' +
     '?client_id={{ FACEBOOK_APP_ID }}' +
     '&redirect_uri=' + encodeURIComponent(redirectURI) +
     '&scope={{ FACEBOOK_EXTENDED_PERMISSIONS }}';
@@ -79,8 +79,8 @@ class FacebookAuth(BaseOAuth2):
     AUTH_BACKEND = FacebookBackend
     RESPONSE_TYPE = None
     SCOPE_SEPARATOR = ','
-    AUTHORIZATION_URL = 'https://www.facebook.com/dialog/oauth'
-    REVOKE_TOKEN_URL = 'https://graph.facebook.com/{uid}/permissions'
+    AUTHORIZATION_URL = 'https://www.facebook.com/v2.8/dialog/oauth'
+    REVOKE_TOKEN_URL = 'https://graph.facebook.com/v2.8/{uid}/permissions'
     REVOKE_TOKEN_METHOD = 'DELETE'
     ACCESS_TOKEN_URL = ACCESS_TOKEN
     SETTINGS_KEY_NAME = 'FACEBOOK_APP_ID'
@@ -140,11 +140,11 @@ class FacebookAuth(BaseOAuth2):
                                        'the app')
 
             response = payload.read()
-            parsed_response = cgi.parse_qs(response)
+            parsed_response = simplejson.loads(response)
 
-            access_token = parsed_response['access_token'][0]
-            if 'expires' in parsed_response:
-                expires = parsed_response['expires'][0]
+            access_token = parsed_response['access_token']
+            if 'expires_in' in parsed_response:
+                expires = parsed_response['expires_in']
 
         if 'signed_request' in self.data:
             response = load_signed_request(
@@ -171,7 +171,7 @@ class FacebookAuth(BaseOAuth2):
     @classmethod
     def process_refresh_token_response(cls, response):
         return dict((key, val[0])
-                        for key, val in cgi.parse_qs(response).iteritems())
+                        for key, val in simplejson.loads(response).iteritems())
 
     @classmethod
     def refresh_token_params(cls, token):
